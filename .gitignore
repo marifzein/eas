@@ -1,0 +1,41 @@
+# Python Bytecode Files
+*.pyc
+__pycache__/
+*~$
+
+# Django-related files
+*.log
+*.pot
+*.mo
+*.swp
+*.sqlite3 # Database file (penting untuk development lokal)
+db.sqlite3
+local_settings.py # Jika Anda memisahkan pengaturan rahasia
+
+# Virtual Environment
+# Direktori tempat environment virtual (lingkungan kerja python) Anda berada
+# Nama umumnya adalah 'venv' atau '.venv', sesuaikan jika nama Anda berbeda
+venv/
+.venv/
+env/
+.env/
+
+# IDE files (tergantung editor yang Anda gunakan)
+# Contoh untuk VS Code
+.vscode/
+
+# Contoh untuk PyCharm
+.idea/
+
+# Operating System Files
+.DS_Store # Mac OS
+Thumbs.db # Windows
+
+# Static and Media Files (Hasil kompilasi atau file yang di-upload pengguna)
+# Pastikan Anda tidak menyimpan file yang sudah di-collect ke Git
+/static_root/ 
+/media_root/
+
+# Dependencies
+# File yang mencantumkan semua dependency Anda (pastikan file ini TIDAK diabaikan)
+# requirements.txt

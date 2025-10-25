@@ -1,0 +1,24 @@
+ARN202-12345	Rizky Hamdan						081234567890					ARN202-12345@hsi.id  →  rizky.hamdan@hsi.id    
+ARN201-30678	Hasan Widodo            085698765432          ARN201-30678@hsi.id  →  hasan.widodo@hsi.id    
+ARN232-12221	Zulkifli Bambang        087712345678          ARN232-12221@hsi.id  →  zulkifli.bambang@hsi.id
+ARN221-67890	Fikri Jaya              082155554444          ARN221-67890@hsi.id  →  fikri.jaya@hsi.id      
+ARN224-80001	Faruq Hidayat           089600112233          ARN224-80001@hsi.id  →  faruq.hidayat@hsi.id   
+ART201-76237	Siti Jasmine            081377778888          ART201-76237@hsi.id  →  siti.jasmine@hsi.id    
+ART222-94263	Alya Lestari            085260607070          ART222-94263@hsi.id  →  alya.lestari@hsi.id    
+ART241-83266	Nur Dewi                083849495858          ART241-83266@hsi.id  →  nur.dewi@hsi.id        
+ART251-45868	Fatimah Indah           081920203030          ART251-45868@hsi.id  →  fatimah.indah@hsi.id   
+ART211-93432	Salma Puspita           087711223344          ART211-93432@hsi.id  →  salma.puspita@hsi.id   
+
+admin@1234
+
+
+081234567890
+085698765432
+087712345678
+082155554444
+089600112233
+081377778888
+085260607070
+083849495858
+081920203030
+087711223344

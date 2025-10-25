@@ -1,0 +1,74 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lembar Evaluasi</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.css' %}">
+</head>
+<body class="bg-light">
+    <h1 class="text-center text-light bg-primary">Lembar Evaluasi</h1>
+
+    <div class="container py-5">
+        <div class="card shadow-sm mx-auto" style="max-width: 600px;">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4 bg-primary text-bold text-light">Soal Pilihan Ganda</h3>
+    
+                <form method="post" class="needs-validation">
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ forloop.counter }}. {{ field.label }}</label>
+                            <div class="form-check">
+                                {% for radio in field %}
+                                    <div class="form-check">
+                                        {{ radio.tag }}
+                                        <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                            {{ radio.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% if field.errors %}
+                                <div class="text-danger small">
+                                    {{ field.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    
+                    <br>
+                    <button type="submit" class="btn btn-primary">Kirim Jawaban</button>
+                </form>
+            </div>
+        </div>
+        <br>
+        
+        {% if hasil %}
+            <div class="card shadow-sm mx-auto" style="max-width: 600px;">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4 bg-primary text-bold text-light">Hasil Evaluasi</h3>
+                    <h2 class="text-bold">Skor: {{ skor }}</h2>
+                    <ul>
+                        {% for id, detail in hasil.items %}
+                            <strong>{{ forloop.counter }}. {{ detail.pertanyaan }}</strong><br>
+                            Jawaban Anda: {{ detail.jawaban_user }} <br>
+                            Jawaban Benar: {{ detail.jawaban_benar }} <br>
+                            <h5 class="mt-3">
+                                {% if detail.benar %}
+                                    <span class="text-success">Benar ✅</span>
+                                {% else %}
+                                    <span class="text-danger">Salah ❌</span>
+                                {% endif %}
+                            </h5>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}    
+    </div>
+
+    <script src="{% static 'js/popper.min.js' %}" type="text/javascript"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}" type="text/javascript"></script>
+</body>
+</html>

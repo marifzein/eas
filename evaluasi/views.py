@@ -141,6 +141,7 @@ def evaluasi_view(request):
                 "hasil": hasil,
                 "skor": skor,
                 "attr_submit":stat
+                
                 }
         
     else:

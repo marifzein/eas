@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from .models import Soal,Evaluasi,Nilai,Santri
 from .forms import FormEvaluasi
-from django.contrib.auth.models import User
+# from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 
 
@@ -14,10 +14,10 @@ def evaluasi_view(request):
 
     try:
         # Ambil objek Santri yang sedang login
-        user_info = request.user
+        # user_info = request.user
         santri_obj = Santri.objects.get(user=user_info)
         # santri_obj = user_info.santri 
-        # print(f"santri obj => {santri_obj}")
+        
     except ObjectDoesNotExist:
         # Jika relasi Santri belum dibuat untuk user ini
         return render(request, 'error_page.html', {'message': 'Data Santri Anda tidak ditemukan. Hubungi admin.'})
@@ -25,9 +25,10 @@ def evaluasi_view(request):
     # Cek apakah santri sudah mengerjakan
     sudah_ujian = Nilai.objects.filter(santri=santri_obj).exists()
     
-    # Inisialisasi variabel
+    # Inisialisasi variabel render halaman
     context = {}
-
+    # statSave=False
+    
     if request.method == "POST":
         #MENGAMBIL SOAL BERDASARKAN ID YANG DIKIRIM OLEH FORM
         
@@ -51,7 +52,7 @@ def evaluasi_view(request):
         # QuerySet Soal yang sedang dievaluasi
         soals_post = Soal.objects.filter(id__in=soal_ids).prefetch_related("pilihan") 
 
-        # 3. Instantiate FormEvaluasi dengan QuerySet Soal yang benar dan data POST
+        # 3. membuat form via FormEvaluasi dengan QuerySet Soal yang benar dan data POST
         form = FormEvaluasi(soals_post, request.POST)
         
         if form.is_valid(): 
@@ -84,12 +85,18 @@ def evaluasi_view(request):
             skor_akhir = (nilai/total)*100
             Nilai.objects.create(santri=santri_obj, nilai=skor_akhir)
 
+            #jika sdh ujian
+            # if sudah_ujian:
+                # statSave=True
             # Siapkan konteks hasil untuk render
+            # print(f"statSave {statSave}")
             context = {
                 "form": form,
                 "hasil": hasil,
                 "skor": skor_akhir,
-                "attr_submit":"disabled"
+                "attr_submit":"disabled",
+                "attr_timer":"d-none",
+                "statSave":True
             }
             return render(request, "evaluasi.html", context)
         else:
@@ -99,7 +106,8 @@ def evaluasi_view(request):
                 "nip": nip_santri,
                 "first_name": user_info.first_name,
                 "last_name": user_info.last_name,
-                "attr_submit": "" 
+                "attr_submit": "",
+                "attr_timer":"d-none" 
             }
             return render(request, "evaluasi.html", context) # Return di sini
 
@@ -140,7 +148,8 @@ def evaluasi_view(request):
         context = {"form": form ,
                 "hasil": hasil,
                 "skor": skor,
-                "attr_submit":stat
+                "attr_submit":stat,
+                "attr_timer":"d-none"
                 
                 }
         
@@ -160,12 +169,16 @@ def evaluasi_view(request):
     return render(request, "evaluasi.html", context)
 
 
-# PERINGKAT VIEW (Sudah di-fix untuk relasi User/Santri)
+# PERINGKAT VIEW 
 @login_required
 def peringkat_view(request):
-    # mengambil queryset model Nilai beserta santri dan user (spy nama bisa tampil) order desc
-    ranking_evaluasi=Nilai.objects.all().select_related("santri__user").order_by("-nilai")
-    
+    user_info = request.user
+    santri_obj = Santri.objects.get(user=user_info)
+    #mengambil gender dari model Santri
+    gdr=santri_obj.gender
+    # mengambil queryset model Nilai beserta santri dan user (spy nama bisa tampil) filter gender , order desc
+    # ranking_evaluasi=Nilai.objects.all().select_related("santri__user").order_by("-nilai")
+    ranking_evaluasi=Nilai.objects.filter(santri__gender=gdr).select_related("santri__user").order_by("-nilai")
     rank_list = []
     for rank in ranking_evaluasi:
         rank_list.append({

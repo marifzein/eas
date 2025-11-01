@@ -6,14 +6,238 @@
         {% endblock title %}
     </title>
     <link rel="stylesheet" href="{% static 'css/bootstrap.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap-icons.min.css' %}">
+    <style>
+
+      :root {
+  /* Warna utama untuk elemen tombol, navbar, dll. */
+  /* --color-primary: #11224e; */
+  --color-primary: #132440;
+  
+  /* Warna sekunder atau warna aksen */
+  --color-accent: #007bff;
+  
+  /* Warna teks untuk latar belakang terang */
+  --color-text-dark: #333333;
+  
+  /* Warna teks/ikon untuk latar belakang gelap (seperti navbar) */
+  --color-text-light: white;
+
+  /* button  */
+  --tombol-submit:#024CAA;
+  --tombol-submit-hv:#007bff;
+
+}
+
+      /* Warna Default (.btn-primary) */
+.btn-primary {
+  /* PENTING: Atur border-color juga */
+  background-color: var(--tombol-submit) !important; 
+  border-color: var(--tombol-submit) !important; 
+  border:0px;
+}
+
+/* Warna Saat Hover */
+.btn-primary:hover {
+  background-color: var(--tombol-submit-hv) !important;
+  border-color: var(--tombol-submit-hv); 
+  border:0px;
+}
+
+/* PENTING: Status Active/Focus */
+/* Agar warna tetap sama saat tombol ditekan atau mendapat fokus */
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary.active {
+  background-color: #1c3980 !important; 
+  border-color: #1c3980 !important;
+  box-shadow: none !important; /* Hapus bayangan default Bootstrap jika tidak diinginkan */
+}
+
+          /* CSS untuk mencegah klik/interaksi (dari konten kuis) */
+      .readonly-quiz {
+        pointer-events: none;
+        user-select: none;
+      }
+
+      /* Hapus semua aturan perubahan warna teks saat kursor di atas */
+      .nav-item-animated:hover .nav-link,
+      .nav-item-animated:hover .center-brand-link,
+      .logout-wrapper:hover .logout-link,
+      .logout-wrapper:hover .bi-box-arrow-right {
+        color: white !important;
+      }
+
+      /* Memastikan Tautan yang Aktif tetap berwarna putih saat tidak di-hover */
+      .nav-item-animated .active-link {
+        color: white !important;
+      }
+
+      .navbar {
+        min-height: 50px;
+      }
+      .nav-link {
+        font-size: 0.85rem !important;
+        padding-top: 0.4rem !important;
+        padding-bottom: 0.4rem !important;
+        padding-left: 0.8rem !important; /* Tambahkan sedikit padding kiri untuk teks */
+        padding-right: 0.8rem !important;
+        transition: color 0.3s ease;
+        text-align: left !important; /* Pastikan teks rata kiri di dalam link */
+      }
+
+      /* PENTING: Mengatur UL agar menggunakan Flexbox dan memenuhi lebar container */
+      #main-nav-list {
+        position: relative;
+        display: flex;
+        width: 100%;
+        margin-left: 0 !important; /* Hilangkan margin UL bawaan Bootstrap */
+        padding-left: 0 !important;
+      }
+
+      /* PENTING: Untuk teks menu 100px */
+      .fixed-width-item {
+        width: 80px;
+        text-align: left; /* Teks rata kiri */
+      }
+
+      #nav-indicator {
+        position: absolute;
+        height: 3px;
+        /* background: #f87b1b; */
+        background: #da0000;
+        bottom: 0;
+        z-index: 10;
+        transition: all 0.5s ease;
+        /* transition: all 0.3s ease; */
+      }
+
+      /* Hapus CSS ::after yang lama */
+      .nav-item-animated .nav-link::after,
+      .nav-item-animated:hover .nav-link::after {
+        content: none;
+      }
+
+      .primary-col {
+        /* background-color: #11224e; */
+        background-color: var(--color-primary);
+      }
+
+      /* Untuk Logout Content */
+      .logout-content {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        padding-top: 0.4rem;
+        padding-bottom: 0.4rem;
+        padding-left: 0.8rem; /* Tambahkan padding kiri agar garis bisa rata */
+      }
+
+      /* Untuk EAS Brand */
+      .center-brand-link {
+        text-decoration: none;
+        color: white;
+        padding-top: 0.4rem;
+        padding-bottom: 0.4rem;
+        padding-left: 0.8rem; /* Tambahkan padding kiri agar garis bisa rata */
+        display: block;
+        text-align: left; /* Teks rata kiri */
+      }
+    </style>
     {% block head %}
     {% endblock head %}
 </head>
-<body>
-{% block navbar %}
+<body style="background-color: rgb(205, 205, 205)">
+
+ <nav
+      class="navbar mx-auto navbar-expand-lg navbar-light primary-col shadow-custom"
+    >
+      <div class="container-fluid">
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div
+          class="collapse navbar-collapse justify-content-center"
+          id="navbarSupportedContent"
+        >
+          <ul class="navbar-nav mb-1 mb-lg-0" id="main-nav-list">
+            <div id="nav-indicator"></div>
+
+            <li class="nav-item nav-item-animated fixed-width-item">
+    {% with current_url=request.resolver_match.url_name %}
+      <a 
+        class="nav-link {% if current_url == 'home' or current_url == 'beranda' %}active-link text-light{% else %}text-secondary{% endif %}" 
+        href="{% url 'home' %}"
+      >
+        Home
+      </a>
+    {% endwith %}
+  </li>
+
+  <li class="nav-item nav-item-animated fixed-width-item">
+    {% with current_url=request.resolver_match.url_name %}
+      <a 
+        class="nav-link {% if current_url == 'view' %}active-link text-light{% else %}text-secondary{% endif %}" 
+        href="{% if user.is_authenticated %}{% url 'evaluasi:view' %}{% else %}#{% endif %}" 
+      >
+        Evaluasi 
+      </a>
+    {% endwith %}
+  </li>
+
+  <li class="nav-item nav-item-animated fixed-width-item">
+    {% with current_url=request.resolver_match.url_name %}
+      <a 
+        class="nav-link {% if current_url == 'peringkat' %}active-link text-light{% else %}text-secondary{% endif %}" 
+        href="{% if user.is_authenticated %}{% url 'evaluasi:peringkat' %}{% else %}#{% endif %}"
+      >
+        Peringkat
+      </a>
+    {% endwith %}
+  </li>
+              
+            <li class="nav-item nav-item-animated d-none d-lg-block mx-auto">
+              <a
+                class="center-brand-link"
+                href="{% url 'home' %}"
+                style="transition: color 0.3s ease"
+              >
+                <strong><h4>EAS - Evaluasi Akhir Sandbox</h4></strong>
+              </a>
+            </li>
+
+            <li class="nav-item nav-item-animated ms-auto">
+              <div class="logout-content logout-wrapper">
+                <i
+                  class="bi bi-box-arrow-right {% if user.is_authenticated %} text-light {% else %} text-secondary {% endif %} me-2 logout-link"
+                ></i>
+                <a
+                  href="{% if user.is_authenticated %}{% url 'logout' %}{% else %}#{% endif %}"
+                  class="text-decoration-none nav-link {% if user.is_authenticated %}logout-link text-light {% else %}text-secondary{% endif %}"
+                  style="transition: color 0.3s ease"
+                >
+                  Logout
+                </a>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+{% block navbar %}    
 {% endblock navbar %}
 
 <div class="container">
+    <!-- <div class="head"><H1>DAMMY</H1></div> -->
       {% block contents %}
           
       {% endblock contents %}
@@ -21,5 +245,92 @@
 
   <script src="{% static 'js/popper.min.js' %}" type="text/javascript"></script>
   <script src="{% static 'js/bootstrap.min.js' %}" type="text/javascript"></script>
+  <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const indicator = document.getElementById("nav-indicator");
+        const navItems = document.querySelectorAll(".nav-item-animated");
+        const navList = document.getElementById("main-nav-list");
+        const activeLink = document.querySelector(
+          ".nav-item-animated .active-link"
+        );
+        let initialItem = activeLink ? activeLink.parentElement : null;
+
+        // Fungsi utama untuk menggerakkan/mengatur indikator
+        function moveIndicator(targetItem) {
+          if (!targetItem) return;
+
+          const navListRect = navList.getBoundingClientRect(); // Rect dari UL
+
+          // 1. Dapatkan elemen konten (A, center-brand-link, atau logout-content)
+          // Ini adalah elemen yang menampung teks dan memiliki padding-left yang kita set (0.8rem)
+          let contentElement =
+            targetItem.querySelector("a") ||
+            targetItem.querySelector(".logout-content");
+          if (!contentElement) {
+            // Jika tidak ada a atau .logout-content, gunakan LI itu sendiri sebagai fallback
+            contentElement = targetItem;
+          }
+          const contentRect = contentElement.getBoundingClientRect(); // Rect dari konten
+
+          // 2. Tentukan Lebar Garis
+          const finalWidth = 35;
+
+          // 3. Hitung Posisi Kiri (Rata Kiri Teks)
+          // Posisi awal teks (garis) = Posisi kiri elemen konten - Posisi kiri UL
+          let finalLeft = contentRect.left - navListRect.left;
+
+          // Penyesuaian: Jika konten adalah tautan nav (bukan hanya LI),
+          // kita perlu menambahkan kembali padding kiri (sekitar 0.8rem atau 12.8px)
+          // yang sudah kita atur di CSS agar garis dimulai tepat di awal teks.
+          // Namun, karena kita menggunakan contentRect.left, posisi itu sudah mencakup padding LI.
+          // Kita hanya perlu memastikan kita menggeser ke awal *padding-left* dari elemen konten itu sendiri.
+
+          // Lebih akurat: Tambahkan padding-left manual (0.8rem = ~12.8px) ke posisi LI
+          // atau gunakan contentRect (lebih aman)
+
+          // *MENGGUNAKAN CONTENT RECT*:
+          // Jika kita sudah setting padding-left: 0.8rem di CSS,
+          // contentRect.left sudah dimulai dari posisi padding tersebut.
+          // Kita hanya perlu menarik garis ke sana.
+
+          // *MENGGUNAKAN LI RECT + MANUAL OFFSET*: (Lebih stabil untuk LI 100px)
+          const itemRect = targetItem.getBoundingClientRect();
+          const paddingOffset = 12.8; // Perkiraan 0.8rem (1rem = 16px, 0.8rem = 12.8px)
+          finalLeft = itemRect.left - navListRect.left + paddingOffset;
+
+          // 4. Terapkan Style
+          indicator.style.width = `${finalWidth}px`;
+          indicator.style.transform = `translateX(${finalLeft}px)`;
+        }
+
+        // ... (Fungsi setInitialPosition dan Event Listener lainnya tetap sama) ...
+
+        function setInitialPosition() {
+          if (initialItem) {
+            moveIndicator(initialItem);
+          }
+        }
+
+        navItems.forEach((item) => {
+          item.addEventListener("mouseenter", function () {
+            moveIndicator(this);
+          });
+
+          item.addEventListener("mouseleave", function () {
+            if (initialItem) {
+              moveIndicator(initialItem);
+            } else {
+              indicator.style.width = "0px";
+            }
+          });
+        });
+
+        setInitialPosition();
+        window.addEventListener("resize", setInitialPosition);
+      });
+      
+    </script>
+    {% block footerscript %}
+    {% endblock footerscript %}
 </body>
 </html>

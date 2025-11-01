@@ -28,7 +28,7 @@ class PilihanJawaban(models.Model):
     return f"{self.kode}. {self.teks}"
   
 class Nilai(models.Model):
-  santri = models.ForeignKey(Santri,related_name="nilai_santri",on_delete=models.CASCADE)
+  santri = models.ForeignKey(Santri,related_name="nilai_santri",on_delete=models.CASCADE,unique=True)
   nilai=models.DecimalField(max_digits=5,decimal_places=2)
 
   def __str__(self):

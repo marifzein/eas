@@ -1,0 +1,603 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>dok-eas</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__html"><h1 id="eas-evaluasi-akhir-sandbox">EAS-Evaluasi Akhir Sandbox</h1>
+<p><strong>HSI IT ( Halaqah Silsilah Ilmiyyah Abdullah Roy)</strong></p>
+<p>Secara garis besar aplikasi ini terdiri dari :<br>
+- Home<br>
+- Login<br>
+- Beranda<br>
+- Form Evaluasi beserta Hasil , Nilai dan kunci jawaban<br>
+- Daftar peringkat santri berdasarkan nilai evaluasi<br>
+Aplikasi menggunakan Django sebagai backend, HTML5, css3, bootstrap, javaScipt untuk frontend. Untuk database menggunakan SQLite3.<br>
+Database dapat diganti dengan yang lain misal MySQL/MariaDB atau yang<br>
+lain dikarenakan aplikasi sudah menggunakan ORM Django.<br>
+Apabila ganti database tinggal di migrasi, tidak sampai mengubah code di views.</p>
+<h1 id="persiapan-dan-database">1. Persiapan dan Database</h1>
+<p>Secara umum database EAS terdiri 5 model, dan 1 model user dari Django untuk otentikasi.<br>
+Model  yang diperlukan adalah sebagai berikut :</p>
+<p>Model  yang diperlukan adalah sebagai berikut :<br>
+1. Soal<br>
+2. PilihanJawaban<br>
+3. Nilai<br>
+4. Evaluasi<br>
+5. Santri</p>
+<p>Disini Santri dimasukkan sebagai user , dimana field username berisi data NIP masing-masing santri.<br>
+Sedangkan Class Santri sendiri menyimpan data-data tambahan (HP,gender,tgl lahir,tahun penerimaan)</p>
+<p>Class Soal menyimpan data soal.<br>
+Class PilihanJawaban menyimpan data pilihan jawaban dan terkoneksi sebagai foreignkey ke Class Soal.</p>
+<p>Class Evaluasi menyimpan data soal-soal yang dikerjakan user, beserta jawaban user. Class Evaluasi terhubung ke Santri sebagai Foreignkey ( many to one ).</p>
+<p>Class Nilai menyimpan nilai hasil evaluasi santri, dan terhubung ke Santri one to one.</p>
+<h3 id="model">1.1 Model</h3>
+<p>Berikut ringkasan Model-model di aplikasi EAS , dan  beberapa hal penting yang perlu diperhatikan :</p>
+
+<table>
+<thead>
+<tr>
+<th align="left">Model</th>
+<th align="left">Relasi Penting</th>
+<th align="left">Catatan untuk Developer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left"><strong><code>Santri</code></strong></td>
+<td align="left"><code>OneToOneField</code> ke <code>User</code></td>
+<td align="left"><strong>Ini adalah <em>profile</em> pengguna.</strong> Gunakan <code>Santri.user.username</code> untuk mendapatkan NIP.</td>
+</tr>
+<tr>
+<td align="left"><strong><code>Soal</code></strong></td>
+<td align="left">-</td>
+<td align="left"><code>jawaban_benar</code> (a, b, c, d) adalah kunci untuk perhitungan skor.</td>
+</tr>
+<tr>
+<td align="left"><strong><code>PilihanJawaban</code></strong></td>
+<td align="left"><code>ForeignKey</code> ke <code>Soal</code></td>
+<td align="left">Digunakan untuk menampilkan pilihan berganda (a, b, c, d) di <em>template</em>.</td>
+</tr>
+<tr>
+<td align="left"><strong><code>Evaluasi</code></strong></td>
+<td align="left"><code>ForeignKey</code> ke <code>Santri</code> dan <code>Soal</code></td>
+<td align="left"><strong>Menyimpan Jawaban Per <em>Soal</em></strong>. Digunakan untuk memeriksa apakah santri sudah mengerjakan dan menyimpan riwayat jawaban.</td>
+</tr>
+<tr>
+<td align="left"><strong><code>Nilai</code></strong></td>
+<td align="left"><code>ForeignKey</code> ke <code>Santri</code></td>
+<td align="left"><strong>Menyimpan Skor Akhir</strong>. Digunakan untuk <em>leaderboard</em> dan riwayat nilai.</td>
+</tr>
+</tbody>
+</table><p>Untuk lebih detail field-field masing-masing model bisa dilihat di  bisa dilihat di eas/evaluasi/models.py :</p>
+<pre><code>from django.contrib.auth.models import User
+
+class Santri(models.Model):
+  
+  user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+  hp = models.CharField(max_length=20)
+  gender=models.CharField(choices=[('L','Laki-laki'),('K','Perempuan')], max_length=1,default='L')
+  tgl_lahir=models.DateField()
+  tahun_penerimaan=models.SmallIntegerField()
+
+  def __str__(self):
+    return f"Santri ID: {self.pk}"
+
+class Soal(models.Model):
+  pertanyaan = models.CharField(max_length=255)
+  jawaban_benar = models.CharField(max_length=1)#a,b,c,d
+
+  def __str__(self):
+    return self.pertanyaan
+  
+class PilihanJawaban(models.Model):
+  soal=models.ForeignKey(Soal,related_name="pilihan",on_delete=models.CASCADE)
+  kode=models.CharField(max_length=1)#a,b,c,d
+  teks=models.CharField(max_length=255)
+
+  def __str__(self):
+    return f"{self.kode}. {self.teks}"
+  
+class Nilai(models.Model):
+  santri = models.ForeignKey(Santri,related_name="nilai_santri",on_delete=models.CASCADE)
+  nilai=models.DecimalField(max_digits=5,decimal_places=2)
+
+  def __str__(self):
+    return str(self.nilai)
+
+class Evaluasi(models.Model):
+  santri =models.ForeignKey(Santri,related_name="jawaban_santri",on_delete=models.CASCADE)
+  soal =models.ForeignKey(Soal,related_name="jwbn_santri",on_delete=models.CASCADE)
+  jawaban_santri=models.CharField(max_length=1)#a,b,c,d
+
+  def __str__(self):
+    return self.jawaban_santri
+</code></pre>
+<h3 id="migrasi-model-ke-database">1.2 Migrasi model ke database</h3>
+<p>Lakukan migrasi model ke database melalui shell</p>
+<pre><code>python manage.py makemigrations                
+python manage.py migrate
+</code></pre>
+<p>Setelah migrasi maka akan terbentuk 5 model yaitu Santri, Soal, PilihanJawaban, Evaluasi dan Nilai.</p>
+<h3 id="diagram-relasional-model">1.3 Diagram relasional model</h3>
+<p>Diagram relasi antar model digambarkan dalam diagram sbb:<br>
+<img src="https://raw.githubusercontent.com/marifzein/eas/d359e11fbd98a9fe5cbf3686d6a6605049a988f1/docs/diagram.png" alt="Diagram relasional database "></p>
+<h3 id="membuat-user-admin">1.4 Membuat User admin</h3>
+<p>Untuk supaya kita dapat masuk ke web Admin Django di alamat <a href="http://127.0.0.1:8000">http://127.0.0.1:8000</a> kita akan membuat user admin via shell/cmd dengan perintah :</p>
+<pre><code>python manage.py createsuperuser
+</code></pre>
+<p>Selanjutnya akan ditanya username, gunakan admin</p>
+<pre><code>admin
+</code></pre>
+<p>Selanjutnya buat password, email dan lainnya. Untuk memudahkan sementara passwordnya</p>
+<pre><code>admin@1234
+</code></pre>
+<h3 id="register-model-agar-muncul-di-menu-admin">1.5 Register model agar muncul di menu admin</h3>
+<p>Agar model Santri muncul di menu admin, maka model Santri harus diregister (daftarkan) ke admin dengan cara menambahkan ke file eas/evaluasi/admin.py :</p>
+<pre><code>from  django.contrib  import  admin    
+from . import  models      
+
+def  get_all_model_fields(model):
+		return [field.name for  field  in  model._meta.fields]
+    
+class  Santri(admin.ModelAdmin):
+    list_display=get_all_model_fields(models.Santri)
+    
+class  Soal(admin.ModelAdmin):
+    list_display=get_all_model_fields(models.Soal)
+
+
+class  PilihanJawaban(admin.ModelAdmin):
+   list_display=get_all_model_fields(models.PilihanJawaban)
+    
+class  Nilai(admin.ModelAdmin):
+    list_display=get_all_model_fields(models.Nilai)
+    
+class  Evaluasi(admin.ModelAdmin):
+    list_display=get_all_model_fields(models.Evaluasi)
+
+admin.site.register(models.Santri,Santri)    
+admin.site.register(models.Soal,Soal)    
+admin.site.register(models.PilihanJawaban,PilihanJawaban)    
+admin.site.register(models.Nilai,    
+admin.site.register(models.Evaluasi,Evaluasi)
+</code></pre>
+<h3 id="jalankan-server">1.6 Jalankan server</h3>
+<pre><code>python  manage.py  runserver
+</code></pre>
+<h3 id="model-user-untuk-otentikasi">1.7 Model user untuk otentikasi</h3>
+<p>Buka <a href="http://127.0.0.1:8000/admin">http://127.0.0.1:8000/admin</a> untuk login menggunakan user admin.<br>
+Model user yang disediakan Django kita gunakan untuk keperluan otentikasi.<br>
+Berikut screen capture model user yang telah terisi beberapa data user :</p>
+<p><img src="https://raw.githubusercontent.com/marifzein/eas/main/docs/user.png" alt="&quot;model user GUI&quot;"></p>
+<h3 id="data-awal">1.8. Data awal</h3>
+<p>Data awal ( initial data ) yang diperlukan :<br>
+1. Soal<br>
+2. PilihanJawaban<br>
+3. Santri</p>
+<p>Berikut data dummy nya :</p>
+
+<table>
+<thead>
+<tr>
+<th>NIP</th>
+<th>first name</th>
+<th>last name</th>
+<th>hp</th>
+<th>email</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARN202-12345</td>
+<td>Rizky</td>
+<td>Hamdan</td>
+<td>081234567890</td>
+<td><a href="mailto:rizky.hamdan@hsi.id">rizky.hamdan@hsi.id</a></td>
+</tr>
+<tr>
+<td>ARN201-30678</td>
+<td>Hasan</td>
+<td>Widodo</td>
+<td>085698765432</td>
+<td><a href="mailto:hasan.widodo@hsi.id">hasan.widodo@hsi.id</a></td>
+</tr>
+<tr>
+<td>ARN232-12221</td>
+<td>Zulkifli</td>
+<td>Bambang</td>
+<td>087712345678</td>
+<td><a href="mailto:zulkifli.bambang@hsi.id">zulkifli.bambang@hsi.id</a></td>
+</tr>
+<tr>
+<td>ARN221-67890</td>
+<td>Fikri</td>
+<td>Jaya</td>
+<td>082155554444</td>
+<td><a href="mailto:fikri.jaya@hsi.id">fikri.jaya@hsi.id</a></td>
+</tr>
+<tr>
+<td>ARN224-80001</td>
+<td>Faruq</td>
+<td>Hidayat</td>
+<td>089600112233</td>
+<td><a href="mailto:faruq.hidayat@hsi.id">faruq.hidayat@hsi.id</a></td>
+</tr>
+<tr>
+<td>ART201-76237</td>
+<td>Siti</td>
+<td>Jasmine</td>
+<td>081377778888</td>
+<td><a href="mailto:siti.jasmine@hsi.id">siti.jasmine@hsi.id</a></td>
+</tr>
+<tr>
+<td>ART222-94263</td>
+<td>Alya</td>
+<td>Lestari</td>
+<td>085260607070</td>
+<td><a href="mailto:alya.lestari@hsi.id">alya.lestari@hsi.id</a></td>
+</tr>
+<tr>
+<td>ART241-83266</td>
+<td>Nur</td>
+<td>Dewi</td>
+<td>083849495858</td>
+<td><a href="mailto:nur.dewi@hsi.id">nur.dewi@hsi.id</a></td>
+</tr>
+<tr>
+<td>ART251-45868</td>
+<td>Fatimah</td>
+<td>Indah</td>
+<td>081920203030</td>
+<td><a href="mailto:fatimah.indah@hsi.id">fatimah.indah@hsi.id</a></td>
+</tr>
+<tr>
+<td>ART211-93432</td>
+<td>Salma</td>
+<td>Puspita</td>
+<td>087711223344</td>
+<td><a href="mailto:salma.puspita@hsi.id">salma.puspita@hsi.id</a></td>
+</tr>
+</tbody>
+</table><hr>
+<h1 id="aplikasi-eas--backend--">2. Aplikasi EAS ( backend  )</h1>
+<p>Aplikasi EAS adalah kuis sederhana berbasis Django dengan fokus pada otentikasi santri melalui NIP (ditempatkan di <em>field</em> <code>username</code> Django <em>User</em>), serta form Evaluasi untuk mengerjakan soal dan form Peringkat untuk menampilkan peringkat peserta evaluasi.<br>
+Aplikasi quiz sederhana ini menggunakan platform Django sebagai Backend serta frontend menggunakan HTML5, CSS3, Bootstrap dan JavaScript .</p>
+<hr>
+<h2 id="modul-url-routing-urls.py">2.1. Modul URL Routing (<code>urls.py</code>)</h2>
+<p>Routing aplikasi terbagi antara <em>project</em> utama (<code>eas/urls.py</code>) dan <em>app</em> <code>evaluasi</code> (<code>evaluasi/urls.py</code>).</p>
+<h3 id="a.-easurls.py--urls-root-project-">2.1.a. <code>eas/urls.py</code> ( urls root project )</h3>
+<p>File ini menangani <em>URL</em> dasar seperti <em>admin</em> dan otentikasi, serta mengarahkan lalu lintas ke <em>app</em> <code>evaluasi</code>.</p>
+<p>Python</p>
+<pre><code>from  django.contrib  import  admin
+
+from  django.urls  import  path, include
+
+from . import  views
+
+  
+
+urlpatterns = [
+#untuk akses ke web admin django
+path('admin/', admin.site.urls),
+#untuk akses ke urls.py app evaluasi
+path('evaluasi/', include('evaluasi.urls')),
+#untuk akses ke halaman home.html
+path('', views.home, name='home'),
+#untuk akses ke halaman login
+path('login/', views.loginView, name='login'),
+#untuk logout dari otentikasi
+path('logout/', views.logoutView, name='logout')
+
+]
+
+</code></pre>
+<h3 id="b.-evaluasiurls.py--url-app-evaluasi-">2.1.b. <code>evaluasi/urls.py</code> ( url App evaluasi )</h3>
+<p>File ini menangani <em>URL</em> yang mengakses fitur utama aplikasi evaluasi, yaitu halaman evaluasi dan halaman peringkat</p>
+<p>Python</p>
+<pre><code>from  django.urls  import  path
+from . import  views
+
+app_name = 'evaluasi'
+
+urlpatterns = [
+#untuk menampilkan evaluasi_view atau halaman evaluasi
+path('', views.evaluasi_view, name='view'),
+#untuk menampilkan peringkat_view atau halaman peringkat
+path('peringkat/', views.peringkat_view, name='peringkat'),
+
+]
+
+</code></pre>
+<hr>
+<h2 id="modul-views-root-project">2.2  Modul Views root project</h2>
+<h3 id="easviews.py">(<code>eas/views.py</code>)</h3>
+<p>Modul ini mengatur otentikasi ( login dan logout ) dan menampilkan halaman home/beranda.</p>
+<h3 id="a.-function-home">2.2.a. Function home</h3>
+<p>Fungsi sederhana untuk mengatur pesan yg ditampilkan di halaman dan merender tampilan menggunakan template home.html.</p>
+<ul>
+<li>
+<p><strong>Tujuan:</strong> Menampilkan <em>landing page</em> setelah <em>login</em> (yang Anda sebut ‘Beranda’).</p>
+</li>
+<li>
+<p><strong>Logika Inti:</strong> Memastikan <em>user</em> sudah <em>login</em> dan mendapatkan data santri.</p>
+</li>
+<li>
+<p><strong>Status:</strong> Harus menggunakan <code>@login_required</code>.</p>
+</li>
+</ul>
+<p>Python</p>
+<pre><code>from  django.shortcuts  import  render, redirect
+from  django.contrib.auth  import  authenticate, login, logout
+from  django.contrib.auth.decorators  import  login_required
+from  django.contrib.auth.models  import  User
+from  evaluasi.models  import  Nilai,Santri
+from  django.core.exceptions  import  ObjectDoesNotExist
+
+def  home(request):
+context = {
+'page_title' : 'Beranda EAS',
+'page_text' : 'Ahlan wa Sahlan'
+}
+return  render(request, 'home.html', context)
+
+</code></pre>
+<h3 id="b.-function-logout">2.2.b. Function Logout</h3>
+<pre><code>@login_required
+def  logoutView(request):
+	context = {
+	'page_title' : 'Homepage',
+	'page_text' : 'Ahlan wa Sahlan'
+}
+	logout(request)
+	return  render(request, 'home.html', context)
+</code></pre>
+<ul>
+<li><strong>Fungsi :</strong><br>
+untuk logout dari system otentikasi django, sehingga user tidak lagi punya akses ke aplikasi. Fungsi ini menggunakan decorator  @login_required , mewajibkan agar user  harus login untuk bisa logout, untuk menghindari bypass dengan langsung akses ke url logout.<br>
+Tampilan akan menggunakan template home.html</li>
+</ul>
+<h3 id="c-function-login">2.2.c Function login</h3>
+<p>Dibagi menjadi 2 berdasarkan request method POST dan GET.<br>
+Bila GET akan dicek apakah user sudah login/terotentikasi :</p>
+<pre><code>if  request.user.is_authenticated:
+</code></pre>
+<p>apabila sdh login akan diperoleh object dari model user, dari request.user ini kita bisa dapatkan info lain misal first_name, username/nip, last_name, email.<br>
+Kemudian user tersebut kita cek apakah ada di model Santri.</p>
+<pre><code>santri_obj = Santri.objects.get(user=user_info) 
+</code></pre>
+<p>Kemudian dicek apakah user sudah mengerjakan evaluasi</p>
+<pre><code>statEva = Nilai.objects.filter(santri=santri_obj).exists()
+</code></pre>
+<p>Bila belum login diarahkan ke halaman login, bila sudah login maka langsung menuju ke halaman index.html.</p>
+<p>untuk method POST, maka akan dilakukan otentikasi oleh Django dengan perintah :</p>
+<pre><code>user = authenticate(request, username=username_login, password=username_password)
+</code></pre>
+<p>Jika tidak valid maka tampilan akan tetap di halaman login.html</p>
+<p>Jika valid akan dicek apakah user ada di model Santri , dan apakah sudah evaluasi :</p>
+<pre><code>santri_profile=Santri.objects.get(user=user)
+statEva = Nilai.objects.filter(santri=santri_profile).exists()
+</code></pre>
+<p>Bila sudah evaluasi tidak bisa mengerjakan ulang, hanya bisa melihat arsip jawaban dan kunci jawaban.<br>
+Tampilan tombol kerjakan atau lihat arsip ada di index.html</p>
+<h2 id="modul-views-di-app-evaluasi">3. Modul views di app evaluasi</h2>
+<p>Ini adalah modul utama dari aplikasi EAS, modul ini mengelola logika evaluasi, arsip jawaban, perhitungan nilai , penyimpanan data ke database.</p>
+<h3 id="function-evaluasi_view">3.1 Function evaluasi_view</h3>
+<p>Ambil object Santri</p>
+<pre><code>user_info = request.user
+santri_obj = Santri.objects.get(user=user_info)
+</code></pre>
+<p>Cek apakah sudah ujian dengan mencari record di model Nilai</p>
+<pre><code>sudah_ujian = Nilai.objects.filter(santri=santri_obj).exists()
+</code></pre>
+<h4 id="method-post">3.1.1 Method POST</h4>
+<p>jika method POST , maka mengambil data soal dan jawaban dari nilai form yang disubmit , diiterasi dan dimasukkan tuple soal_ids</p>
+<pre><code>soal_ids.append(soal_id)
+</code></pre>
+<p>Mendapatkan queryset soal berdasarkan tuple soal_id</p>
+<pre><code>soals_post = Soal.objects.filter(id__in=soal_ids).prefetch_related("pilihan")
+</code></pre>
+<p>Menyusun form FormEvaluasi ( <a href="http://forms.py">forms.py</a> ) dengan parameter queryset soals_post</p>
+<pre><code>form = FormEvaluasi(soals_post, request.POST)
+</code></pre>
+<p>Jika form valid maka hitung nilai sempurna bila jawaban benar semua dengan count dikalikan 2 ( nilai 1 soal bila benar ) :</p>
+<pre><code>total = soals_post.count() * 2
+</code></pre>
+<p>Iterasi soal_post</p>
+<pre><code>for  soalnya  in  soals_post:
+</code></pre>
+<p>variabel flag untuk menandai soal yang dikerjakan apakah benar atau salah</p>
+<pre><code>benar = jawaban_user == soalnya.jawaban_benar
+</code></pre>
+<p>menghitung nilai :</p>
+<pre><code>nilai = nilai + 2
+</code></pre>
+<p>kemudian membuat dictionary hasil[] untuk keperluan arsip jawaban dan kunci jawaban<br>
+Insert data soal,jawaban ke model Evaluasi :</p>
+<pre><code>Evaluasi.objects.create(santri=santri_obj,    
+soal=soalnya,     
+jawaban_santri=jawaban_user)
+</code></pre>
+<p>Hitung skor akhir dan Insert nilai ke model Nilai :</p>
+<pre><code>skor_akhir = (nilai/total)*100
+Nilai.objects.create(santri=santri_obj, nilai=skor_akhir)
+</code></pre>
+<p>Render ke evaluasi.html</p>
+<h4 id="method-get">3.1.2. Method GET</h4>
+<p>Jika sudah ujian :<br>
+Mengambil data Evaluasi berdasarkan user dan mengambil sekaligus data soal dan jawaban dari model Soal menggunakan select_related</p>
+<pre><code>evaluasi_data = Evaluasi.objects.filter(santri=santri_obj).select_related('soal').order_by('soal__id')
+</code></pre>
+<p>membuat tuple soal_id dengan iterasi queryset evaluasi_data sebelumnya :</p>
+<pre><code>soal_ids = [item.soal_id for  item  in  evaluasi_data]
+</code></pre>
+<p>mencari queryset Soal sekaligus PilihanJawaban diurutkan berdasarkan id soal dan berdasarkan tuple soal_id</p>
+<p>soals=Soal.objects.filter(id__in=soal_ids).prefetch_related(“pilihan”).order_by(‘id’)</p>
+<p>Membuat parameter initial_data untuk FormEvaluasi (<a href="http://forms.py">forms.py</a>), untuk menampilkan arsip jawaban yang dipilih user saat evaluasi</p>
+<pre><code>initial_data={}
+
+for  item  in  evaluasi_data:    
+    field_name = f"soal_{item.soal_id}"
+  initial_data[field_name] = item.jawaban_santri
+</code></pre>
+<p>Membuat dictionary hasil{} untuk menampilkan arsip evaluasi , jawaban user, jawaban yang benar dan statusnya (benar/salah)</p>
+<pre><code>hasil = {}
+
+for  evl  in  evaluasi_data:    
+    soal=evl.soal    
+    benar = evl.jawaban_santri == soal.jawaban_benar    
+    hasil[soal.id] = {    
+	    "pertanyaan": soal.pertanyaan,    
+	    "jawaban_user": evl.jawaban_santri,    
+	    "jawaban_benar": soal.jawaban_benar,    
+	    "benar": benar    
+    }
+</code></pre>
+<p>Mendapatkan nilai Santri dari model Nilai :</p>
+<pre><code>skor_record=Nilai.objects.filter(santri=santri_obj).first()
+skor=skor_record.nilai
+</code></pre>
+<p>Menyusun form dengan initial dan atribut timer d-none untuk menyembunyikan timer di form evaluasi ( karena sudah evaluasi )</p>
+<pre><code>form = FormEvaluasi(soals,initial=initial_data)    
+	context = {"form": form ,    
+	"hasil": hasil,    
+	"skor": skor,    
+	"attr_submit":stat,    
+	"attr_timer":"d-none"
+    	}   
+</code></pre>
+<p>Jika user/santri belum ujian</p>
+<p>Ambil queryset soal secara acak sebanyak 4 soal setiap user dari model Soal.</p>
+<p><code>soals = Soal.objects.prefetch_related("pilihan").order_by("?")[:4]</code></p>
+<p>tampilkan dengan template evaluasi.html</p>
+<h3 id="function-peringkat_view">3.2 Function peringkat_view</h3>
+<p>Mengambil queryset 3 model Nilai , Santri dan User , nilai diurutkan descending</p>
+<pre><code>ranking_evaluasi=Nilai.objects.all().select_related("santri__user").order_by("-nilai")
+</code></pre>
+<p>membuat list rank_list dengan mengambil data-data yang lebih informatif NIP, nama(firs_name digabung dengan last_name), serta nilai</p>
+<pre><code>rank_list = []    
+for  rank  in  ranking_evaluasi:
+    rank_list.append({
+    'nip': rank.santri.user.username,
+	    'nama': f"{rank.santri.user.first_name}  {rank.santri.user.last_name}",
+	    'nilai': rank.nilai
+})
+</code></pre>
+<p>render ke peringkat.html</p>
+<p>=================================================</p>
+<h2 id="template-html-frontend">4. Template HTML (<em>Frontend</em>)</h2>
+<p>Semua <em>template</em> harus melampirkan (<code>extends</code>) <strong><code>base.html</code></strong> untuk konsistensi <em>navbar</em>, <em>footer</em>, <em>styling</em>, dan <em>script</em> yang selalu digunakan.</p>
+<h3 id="base.html">4.1. <code>base.html</code></h3>
+<ul>
+<li>
+<p><strong>Fungsi :</strong></p>
+</li>
+<li>
+<p>Menyediakan struktur HTML dasar, <em>link</em> ke CSS/JS (Bootstrap, <em>custom CSS</em>), dan <em>block</em> untuk <em><code>title</code></em>, <em><code>navbar</code></em>, style,<em>contents</em>, dan  <em>footer script</em>. Sebagai template untuk halaman-halaman lain.</p>
+</li>
+<li>
+<p>Bila ada perubahan tampilan, menu, style , script atau yang lainnya tidak perlu update/edit setiap halaman template html.</p>
+</li>
+<li>
+<p>Halaman ini mengimpor semua aset statik (<code>{% load static %}</code>).</p>
+</li>
+</ul>
+<h3 id="home.html--beranda-">4.2. <code>home.html</code> ( Beranda )</h3>
+<p><strong>url :</strong> <a href="http://127.0.0.1/">http://127.0.0.1/</a><br>
+<strong>Konten:</strong> Menampilkan pesan selamat datang , dan tombol MASUK untuk menuju halaman Login<br>
+Menu Navbar tidak aktif ( muted ) kecuali Home dan Logo Aplikasi yang keduanya  menuju home.html<br>
+Tampilan UI home.html :<br>
+<img src="https://raw.githubusercontent.com/marifzein/eas/e3efae46868c288bc543d4853749a999306f8101/docs/home.jpg" alt="enter image description here"></p>
+<h3 id="login.html--login-">4.3. <code>login.html</code> ( Login )</h3>
+<p>**url :**<a href="http://127.0.0.1:8000/login/">http://127.0.0.1:8000/login/</a><br>
+<strong>Konten:</strong> Menampilkan halaman login dengan input username ( NIP santri) dan password serta tombol LOGIN<br>
+Berikut tampilan halaman login :<br>
+<img src="https://raw.githubusercontent.com/marifzein/eas/e5165870ae50f1f3798678c2fddfd125d4fbe30c/docs/login.jpg" alt="enter image description here"></p>
+<h3 id="index.html-beranda-setelah-login">4.4. <code>index.html</code> (Beranda Setelah Login)</h3>
+<p>**url :**<a href="http://127.0.0.1:8000/login/">http://127.0.0.1:8000/login/</a></p>
+<ul>
+<li>
+<p><strong>Konten:</strong> Menampilkan nama santri (<code>{{ user.first_name }}</code>, <code>{{ user.last_name }}</code> , NIP  <code>{{ user.username }}</code>), <em>tombol</em> (<code>KERJAKAN EVALUASI</code>), bila  evaluasi sudah dikerjakan tombolnnya menjadi (<code>ARSIP EVALUASI</code>)</p>
+</li>
+<li>
+<p><strong>Fitur :</strong> Menggunakan pop up <strong>modal</strong> untuk konfirmasi sebelum memulai evaluasi (mengarahkan ke <code>{% url 'evaluasi:view' %}</code> hanya jika <em>user</em> siap).</p>
+</li>
+</ul>
+<h3 id="evaluasi.html-form-evaluasi-">4.5. <code>evaluasi.html</code>( Form Evaluasi )</h3>
+<ul>
+<li>
+<p><strong>Konten:</strong> Form kuis dengan <em>radio button</em> untuk setiap pilihan, tombol <strong>“Kirim Jawaban”</strong> yang memicu modal konfirmasi.</p>
+</li>
+<li>
+<p><strong>Fitur fitur :</strong></p>
+<ul>
+<li>
+<p><strong>a. Timer JS:</strong> Skrip ( JavaScript ) timer terus berjalan untuk menonaktifkan tombol <em>submit</em> setelah 8 menit.</p>
+</li>
+<li>
+<p><strong>b. Modal Sukses:</strong> Modal konfirmasi pengiriman ditampilkan jika seluruh proses Insert Data ke database selesai dan sukses.</p>
+</li>
+<li>
+<p><strong>c. Disable Form:</strong> Tambahkan <em>class</em> <code>readonly-quiz</code> atau properti <code>disabled</code> pada <em>form</em> jika kuis sudah dikerjakan.</p>
+</li>
+<li>
+<p><strong>d. Arsip jawab ,kunci jawaban , status :</strong> Di bagian bawah ditampilkan kunci jawaban setiap soal dan  jawaban user setiap soal. Selain itu juga status benar atau salah di setiap soal.</p>
+</li>
+<li></li>
+<li>
+<p><strong>e. Nilai :</strong> Nilai ditampilkan berdasarkan perhitungan setiap soal bila benar mendapat point 2 , bila salah 0.</p>
+</li>
+<li></li>
+<li>
+<p>Tampilan UI bila belum evaluasi :</p>
+</li>
+<li>
+<p><img src="https://raw.githubusercontent.com/marifzein/eas/ec94948f4d99216ad9a050f2ec436bc3ea9ace6a/docs/evaluasi-belum.jpg" alt="enter image description here"></p>
+</li>
+<li></li>
+</ul>
+</li>
+</ul>
+<p>Tampilan bila sudah mengirimkan jawaban ( save ke database) :<br>
+<img src="https://raw.githubusercontent.com/marifzein/eas/ec94948f4d99216ad9a050f2ec436bc3ea9ace6a/docs/evaluasi-berhasil-post.jpg" alt="enter image description here"></p>
+<p>Berikut tampilan UI bila sudah evaluasi :</p>
+<p><img src="https://raw.githubusercontent.com/marifzein/eas/c7bc9981ae1be4e8ddf130f82a427ba3e7672085/docs/evaluasi-sudah.jpg" alt="enter image description here"></p>
+<p>Tombol submit tidak aktif</p>
+<p><img src="https://raw.githubusercontent.com/marifzein/eas/e77e8aef0cf62039e17e162dec2a2b64a4f2cb5d/docs/evaluasi-sudah2.jpg" alt="enter image description here"></p>
+<h3 id="peringkat.html-halaman-peringkat">4.6. <code>peringkat.html</code> Halaman Peringkat</h3>
+<ul>
+<li>
+<p><strong>Konten:</strong> Tabel yang menampilkan peringkat santri.</p>
+</li>
+<li>
+<p><strong>Data yang Ditampilkan:</strong></p>
+<ul>
+<li>
+<p>Nomor Peringkat.</p>
+</li>
+<li>
+<p>NIP (<code>{{ nilai.santri.user.username }}</code> ).</p>
+</li>
+<li>
+<p>Nama Santri (<code>{{ nilai.santri.first_name }} {{ nilai.santri.last_name }}</code> ).</p>
+</li>
+<li>
+<p>Nilai (<code>{{ nilai.nilai }}</code>).</p>
+<p>Tampilan UI peringkat :<br>
+<img src="https://raw.githubusercontent.com/marifzein/eas/6615c015eb1a5ffeb3115886a01d222470406e35/docs/peringkat.jpg" alt="enter image description here"></p>
+</li>
+</ul>
+</li>
+</ul>
+<hr>
+<p>Alhamdulillah</p>
+<h2 id="selesai">SELESAI</h2>
+</div>
+</body>
+
+</html>
